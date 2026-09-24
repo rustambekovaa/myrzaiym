@@ -187,6 +187,9 @@ footer .meadow{z-index:0}
 .credit-links a{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border:1px solid var(--gold2);border-radius:30px;color:var(--gold);text-decoration:none;font-size:16px;background:#fffefb;transition:.3s}
 .credit-links a:hover{background:var(--gold);color:#fff}
 .credit-links svg{width:18px;height:18px}
+.intro-card .guest,.invite .who{overflow-wrap:anywhere;max-width:100%;padding:0 6px}
+.intro-card .guest.long,.invite .who.long{font-size:clamp(34px,9vw,50px)}
+.intro-card .guest.xlong,.invite .who.xlong{font-size:clamp(28px,7.2vw,40px)}
 </style>
 </head>
 <body class="locked">
@@ -329,19 +332,30 @@ footer .meadow{z-index:0}
 /* ===== НАСТРОЙКА: номер WhatsApp, куда придут ответы гостей (только цифры, с 996) ===== */
 const WHATSAPP = "996707789224";
 
-/* ---- Guest name from URL: /Асан & Бермет  or  ?name=Асан & Бермет ---- */
+/* ---- Guest name from URL ----
+   /Асан & Бермет            → одна строка
+   /Мамыт жезде\nБусайра абже → две строки (\n, / или | = новая строка) */
 let GUEST = "";
 (function(){
-  let name = "";
+  let lines = [];
   try{
     const q = new URLSearchParams(location.search).get("name");
-    const path = decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g,"")).replace(/index\.html$/i,"");
+    const path = decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g,"")).replace(/\/?index\.html$/i,"");
     const hash = decodeURIComponent(location.hash.slice(1));
-    name = (q || path || hash || "").replace(/[_+]/g," ").replace(/\s+/g," ").trim();
+    const raw = (q || path || hash || "").replace(/[_+]/g," ");
+    // браузер превращает "\n" в ссылке в "/n", поэтому ловим оба варианта
+    lines = raw.split(/\\n|\/n(?=[^\x00-\x7F])|\/|\|/).map(t=>t.replace(/\s+/g," ").trim()).filter(Boolean);
   }catch(e){}
-  if(name){
-    document.getElementById("guestIntro").textContent = name;
-    document.getElementById("guestMain").textContent = name;
+  if(lines.length){
+    const name = lines.join(" ");
+    const longest = Math.max(...lines.map(l=>l.length));
+    ["guestIntro","guestMain"].forEach(id=>{
+      const el = document.getElementById(id);
+      el.textContent = "";
+      lines.forEach((l,i)=>{ if(i) el.appendChild(document.createElement("br")); el.appendChild(document.createTextNode(l)); });
+      if(longest > 14) el.classList.add("long");
+      if(longest > 22) el.classList.add("xlong");
+    });
     document.title = "Урматтуу " + name + " — Мырзайым";
     GUEST = name;
     document.getElementById("rName").value = name;
